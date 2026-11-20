@@ -1,67 +1,18 @@
-# AgriPrice Carmen
+# AgriPriceTrack (plain PHP / MySQL build)
 
-A municipal agricultural price tracker for Carmen: market price transparency for
-farmers and buyers, plus a light farmer-to-buyer crop marketplace.
+1. Create a database named `agriprice_db` and import `database/agriprice_db.sql`.
+   Local demo sign-ins only, not for production (password is `admin` for admin, farmer, buyer and pedrotrader; `admin123` for roytapz27).
+2. Set the database login in `includes/db.php` if it is not the XAMPP default (root, no password).
+3. Email (account verification): copy `includes/mail_config.local.example.php` to
+   `includes/mail_config.local.php` and enter the mailbox credentials, or set the
+   `SMTP_USER` / `SMTP_PASS` environment variables. Without them, registration cannot send its
+   verification email and is rolled back.
+4. PHP and MySQL should use the same time zone (the app uses Asia/Manila), otherwise the
+   15-minute login lockout window is computed against the wrong clock.
+5. Passwords are stored with `password_hash()`. A database that still has plain-text passwords
+   can be converted once with `php database/hash_existing_passwords.php`.
 
-## The core model
+## Before deploying
 
-`products` is the shared **type hub** — one row per commodity ("Rice"). Two
-independent sides FK into it and never into each other:
-
-- **Observation side** — `price_reports`: a commodity's observed rate at a
-  `market` (a *place*, never an actor). Aggregated daily into `price_history`
-  for trend charts.
-- **Instance side** — `crops`: a farmer's physical batch of a product, owned by
-  the farmer (`farmer_id`), carrying the farmer's own **asking price**.
-
-Those are the two distinct price concepts in the system: the market rate
-(nobody's personal price) and the farmer's ask. Both are normalized to the
-product's base unit via `product_units.factor_to_base` (per product — a sack of
-rice is 50 kg, a sack of corn is 57 kg), which is what makes them directly
-comparable: the app shows every asking price as % above/below the going market
-rate.
-
-## Roles
-
-| Role   | Can do |
-|--------|--------|
-| admin  | Record market price reports (reference data is seeded) |
-| farmer | List/edit/delete their own crops, see their ask vs the market rate |
-| buyer  | Browse available crops with market-rate comparison |
-
-Everyone sees the dashboard, product trends, markets, and the report log.
-
-## Setup
-
-```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate:fresh --seed
-php artisan serve
-```
-
-SQLite by default — no DB server needed. The seeder creates 30 days of price
-reports (some deliberately in sacks/crates to exercise unit normalization),
-daily history snapshots, and demo crops.
-
-## Demo accounts (password: `password`)
-
-- `admin@agriprice.test` — admin
-- `khaya@agriprice.test`, `rynna@agriprice.test` — farmers
-- `buyer@agriprice.test` — buyer
-
-## Maintenance
-
-`php artisan prices:snapshot [date]` aggregates a day's reports into
-`price_history`; it is scheduled daily at 18:00 (`routes/console.php`).
-
-## Tests
-
-```bash
-php artisan test
-```
-
-Feature smoke tests cover every page, role boundaries, unit normalization
-(₱2,500/sack of rice → ₱50/kg), rejection of unconfigured units, and crop
-ownership enforcement.
+The demo accounts and their passwords are for local testing only. Delete or change them on any public server.
+Credentials (`includes/mail_config.local.php`) and uploaded verification documents are git-ignored; keep it that way.
